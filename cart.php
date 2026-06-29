@@ -4,16 +4,6 @@ if(!isLoggedIn() || isAdmin()) redirect('index.php');
 
 if(!isset($_SESSION['cart'])) $_SESSION['cart'] = [];
 
-function getShippingCost($method) {
-    $costs = [
-        'JNE Reguler' => 10000,
-        'JNE YES'     => 20000,
-        'SiCepat Reguler' => 12000,
-        'Grab Instant' => 25000
-    ];
-    return $costs[$method] ?? 0;
-}
-
 // Tambah ke keranjang
 if(isset($_GET['action']) && $_GET['action'] === 'add' && $_SERVER['REQUEST_METHOD'] === 'POST') {
     $product_id = $_POST['product_id'];
@@ -103,8 +93,8 @@ if(isset($_POST['checkout'])) {
             }
         }
         
-        $stmt = $pdo->prepare("INSERT INTO orders (user_id, total_amount, address, phone, shipping_method, payment_method, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')");
-        $stmt->execute([$_SESSION['user_id'], $total, $address, $phone, $shipping_method, $payment_method, $notes]);
+        $stmt = $pdo->prepare("INSERT INTO orders (user_id, total_amount, shipping_cost, address, phone, shipping_method, payment_method, notes, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')");
+        $stmt->execute([$_SESSION['user_id'], $total, $shipping_cost, $address, $phone, $shipping_method, $payment_method, $notes]);
         $order_id = $pdo->lastInsertId();
         
         foreach($_SESSION['cart'] as $product_id => $item) {

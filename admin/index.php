@@ -2,33 +2,14 @@
 require_once __DIR__ . '/../config.php';
 if (!isAdmin()) redirect('../index.php');
 
-function statusIndonesia($status) {
-    $map = [
-        'pending' => 'Menunggu',
-        'request_cancel' => 'Menunggu Batal',
-        'processed' => 'Diproses',
-        'shipped' => 'Dikirim',
-        'delivered' => 'Selesai',
-        'cancelled' => 'Dibatalkan'
-    ];
-    return $map[$status] ?? ucfirst($status);
-}
-
-function statusBadge($status) {
-    $classes = [
-        'pending' => 'badge-warning',
-        'request_cancel' => 'badge-warning',
-        'processed' => 'badge-info',
-        'shipped' => 'badge-primary',
-        'delivered' => 'badge-success',
-        'cancelled' => 'badge-danger'
-    ];
-    $class = $classes[$status] ?? 'badge-secondary';
-    return "<span class='badge $class'>" . statusIndonesia($status) . "</span>";
-}
-
-// Ambil data pesanan online
-$stmt = $pdo->query("SELECT o.*, u.username FROM orders o JOIN users u ON o.user_id = u.id WHERE o.user_id IS NOT NULL AND o.user_id != 0 ORDER BY o.order_date DESC");
+// Ambil semua pesanan (online + offline kasir)
+$stmt = $pdo->query("
+    SELECT o.*, COALESCE(u.username, CONCAT('Kasir: ', k.username), 'Offline') as username 
+    FROM orders o 
+    LEFT JOIN users u ON o.user_id = u.id AND o.user_id IS NOT NULL AND o.user_id != 0
+    LEFT JOIN users k ON o.kasir_id = k.id
+    ORDER BY o.order_date DESC
+");
 $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $totalOrders = count($orders);
@@ -39,10 +20,25 @@ $shippedCount = count(array_filter($orders, fn($o) => $o['status'] == 'shipped')
 $deliveredCount = count(array_filter($orders, fn($o) => $o['status'] == 'delivered'));
 $cancelledCount = count(array_filter($orders, fn($o) => $o['status'] == 'cancelled'));
 
-// Update status biasa
+// Update status biasa (dengan restok jika dibatalkan)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_status'])) {
     $order_id = (int)$_POST['order_id'];
     $status = $_POST['status'];
+    $stmt = $pdo->prepare("SELECT status FROM orders WHERE id = ?");
+    $stmt->execute([$order_id]);
+    $oldStatus = $stmt->fetchColumn();
+    
+    // Jika diubah ke cancelled, kembalikan stok
+    if ($status === 'cancelled' && $oldStatus !== 'cancelled') {
+        $stmt = $pdo->prepare("SELECT product_id, quantity FROM order_items WHERE order_id = ?");
+        $stmt->execute([$order_id]);
+        $items = $stmt->fetchAll();
+        foreach ($items as $item) {
+            $stmt2 = $pdo->prepare("UPDATE products SET stock = stock + ? WHERE id = ?");
+            $stmt2->execute([$item['quantity'], $item['product_id']]);
+        }
+    }
+    
     $stmt = $pdo->prepare("UPDATE orders SET status = ? WHERE id = ?");
     $stmt->execute([$status, $order_id]);
     $_SESSION['message'] = "Status pesanan #$order_id berhasil diupdate.";

@@ -12,26 +12,6 @@ $items = $pdo->prepare("SELECT oi.*, p.name, p.image_url FROM order_items oi JOI
 $items->execute([$id]);
 $orderItems = $items->fetchAll(PDO::FETCH_ASSOC);
 
-// Fungsi badge status warna
-function statusBadge($status) {
-    $classes = [
-        'pending' => 'badge-warning',
-        'processed' => 'badge-info',
-        'shipped' => 'badge-primary',
-        'delivered' => 'badge-success',
-        'cancelled' => 'badge-danger'
-    ];
-    $class = $classes[$status] ?? 'badge-secondary';
-    $labels = [
-        'pending' => 'Menunggu',
-        'processed' => 'Diproses',
-        'shipped' => 'Dikirim',
-        'delivered' => 'Selesai',
-        'cancelled' => 'Dibatalkan'
-    ];
-    $label = $labels[$status] ?? ucfirst($status);
-    return "<span class='badge $class'>$label</span>";
-}
 ?>
 <!DOCTYPE html>
 <html lang="id">

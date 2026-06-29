@@ -82,18 +82,28 @@ if($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_review'])) {
     redirect('orders.php');
 }
 
-// Fungsi status badge
-function statusBadge($status) {
-    $map = [
-        'pending'           => ['text' => 'Menunggu Pembayaran', 'class' => 'badge-warning'],
-        'request_cancel'    => ['text' => 'Menunggu Konfirmasi Admin', 'class' => 'badge-warning'],
-        'processed'         => ['text' => 'Diproses', 'class' => 'badge-info'],
-        'shipped'           => ['text' => 'Dikirim', 'class' => 'badge-primary'],
-        'delivered'         => ['text' => 'Selesai', 'class' => 'badge-success'],
-        'cancelled'         => ['text' => 'Dibatalkan', 'class' => 'badge-danger']
-    ];
-    $data = $map[$status] ?? ['text' => ucfirst($status), 'class' => 'badge-secondary'];
-    return "<span class='badge {$data['class']}'>{$data['text']}</span>";
+// Proses upload bukti pembayaran
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['upload_proof'])) {
+    $order_id = (int)$_POST['order_id'];
+    $stmt = $pdo->prepare("SELECT status FROM orders WHERE id = ? AND user_id = ?");
+    $stmt->execute([$order_id, $_SESSION['user_id']]);
+    $order = $stmt->fetch();
+    if ($order && $order['status'] == 'pending' && isset($_FILES['payment_proof']) && $_FILES['payment_proof']['error'] === UPLOAD_ERR_OK) {
+        $ext = strtolower(pathinfo($_FILES['payment_proof']['name'], PATHINFO_EXTENSION));
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        if (in_array($ext, $allowed) && $_FILES['payment_proof']['size'] <= 2*1024*1024) {
+            $filename = time() . '_' . uniqid() . '.' . $ext;
+            move_uploaded_file($_FILES['payment_proof']['tmp_name'], 'uploads/bukti/' . $filename);
+            $stmt = $pdo->prepare("UPDATE orders SET payment_proof = ? WHERE id = ?");
+            $stmt->execute([$filename, $order_id]);
+            $_SESSION['success'] = "Bukti pembayaran berhasil diupload!";
+        } else {
+            $_SESSION['error'] = "File tidak valid. Maks 2MB, format: JPG, PNG, GIF, WEBP.";
+        }
+    } else {
+        $_SESSION['error'] = "Gagal upload. Pastikan pesanan masih pending.";
+    }
+    redirect('orders.php');
 }
 
 // Ambil daftar pesanan user
@@ -111,7 +121,7 @@ $orders = $stmt->fetchAll();
 // Ambil item setiap pesanan
 foreach($orders as &$order) {
     $stmt = $pdo->prepare("
-        SELECT oi.*, p.name, p.image 
+        SELECT oi.*, p.name, p.image, p.image_url 
         FROM order_items oi 
         JOIN products p ON oi.product_id = p.id 
         WHERE oi.order_id = ?
@@ -237,15 +247,15 @@ foreach($orders as &$order) {
         Berkah Fashion
     </div>
     <div>
-        <a href="index.php">🏠 Beranda</a>
-        <a href="cart.php">🛒 Keranjang</a>
-        <a href="orders.php">📦 Pesanan</a>
-        <a href="logout.php">🚪 Logout</a>
+        <a href="index.php">Beranda</a>
+        <a href="cart.php">Keranjang</a>
+        <a href="orders.php">Pesanan</a>
+        <a href="logout.php">Logout</a>
     </div>
 </nav>
 
 <div class="container">
-    <div class="page-title">📦 Pesanan Saya</div>
+    <div class="page-title">Pesanan Saya</div>
 
     <?php if(isset($_SESSION['success'])): ?>
         <div class="alert alert-success">✅ <?= $_SESSION['success']; unset($_SESSION['success']); ?></div>
@@ -268,8 +278,8 @@ foreach($orders as &$order) {
                 $subtotal += $item['price'] * $item['quantity'];
             }
             
-            $ongkir = 10000;
-            $total = $subtotal + $ongkir;
+            $ongkir = (float)($order['shipping_cost'] ?? 0);
+            $total = (float)$order['total_amount'];
             
             $unreviewed = [];
             foreach($order['items'] as $item) {
@@ -300,8 +310,18 @@ foreach($orders as &$order) {
             <div class="product-list">
                 <?php foreach($order['items'] as $item): ?>
                 <div class="product-item">
-                    <?php if(!empty($item['image']) && file_exists('uploads/produk/' . $item['image'])): ?>
-                        <img src="uploads/produk/<?= $item['image'] ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="product-image">
+                    <?php 
+                        $imgSrc = '';
+                        if (!empty($item['image'])) {
+                            if (file_exists('uploads/' . $item['image'])) {
+                                $imgSrc = 'uploads/' . $item['image'];
+                            }
+                        } elseif (!empty($item['image_url'])) {
+                            $imgSrc = htmlspecialchars($item['image_url']);
+                        }
+                    ?>
+                    <?php if ($imgSrc): ?>
+                        <img src="<?= $imgSrc ?>" alt="<?= htmlspecialchars($item['name']) ?>" class="product-image">
                     <?php else: ?>
                         <div class="product-image" style="background: #e2e8f0; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #94a3b8;">No Image</div>
                     <?php endif; ?>
@@ -382,6 +402,15 @@ foreach($orders as &$order) {
                             <span class="btn-review" style="background:#f59e0b;cursor:default;">⏳ Menunggu Pembayaran</span>
                             <a href="?cancel_request=<?= $order['id'] ?>" class="btn-cancel" onclick="return confirm('Ajukan pembatalan pesanan ini? Permintaan akan dikonfirmasi admin.')">Ajukan Batal</a>
                         </div>
+                        <?php if ($order['payment_method'] != 'COD'): ?>
+                        <div style="margin-top:10px; padding-top:10px; border-top:1px solid #e2e8f0;">
+                            <form method="POST" enctype="multipart/form-data" style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                                <input type="hidden" name="order_id" value="<?= $order['id'] ?>">
+                                <input type="file" name="payment_proof" accept="image/jpeg,image/png,image/gif,image/webp" required style="font-size:12px; flex:1; min-width:120px;">
+                                <button type="submit" name="upload_proof" class="btn-review" style="background:#1e40af;">Upload Bukti</button>
+                            </form>
+                        </div>
+                        <?php endif; ?>
                     <?php elseif($order['status'] == 'request_cancel'): ?>
                         <div class="order-actions">
                             <span class="btn-disabled-small">⏳ Menunggu Konfirmasi Admin</span>

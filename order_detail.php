@@ -33,18 +33,6 @@ $stmt = $pdo->prepare("
 $stmt->execute([$order_id]);
 $items = $stmt->fetchAll();
 
-function statusBadge($status) {
-    $map = [
-        'pending'           => ['text' => 'Menunggu Pembayaran', 'class' => 'badge-warning'],
-        'request_cancel'    => ['text' => 'Menunggu Konfirmasi Batal', 'class' => 'badge-warning'],
-        'processed'         => ['text' => 'Diproses', 'class' => 'badge-info'],
-        'shipped'           => ['text' => 'Dikirim', 'class' => 'badge-primary'],
-        'delivered'         => ['text' => 'Selesai', 'class' => 'badge-success'],
-        'cancelled'         => ['text' => 'Dibatalkan', 'class' => 'badge-danger']
-    ];
-    $data = $map[$status] ?? ['text' => ucfirst($status), 'class' => 'badge-secondary'];
-    return "<span class='badge {$data['class']}'>{$data['text']}</span>";
-}
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -57,6 +45,8 @@ function statusBadge($status) {
         body { font-family: 'Segoe UI', Roboto, sans-serif; background: #f0f4f8; color: #1e2a3a; }
         
         .navbar { background: #1e40af; color: white; padding: 14px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+        .navbar .logo { display: flex; align-items: center; gap: 10px; font-size: 18px; font-weight: 500; }
+        .navbar .logo svg { width: 28px; height: 28px; stroke: white; stroke-width: 1.6; fill: none; stroke-linecap: round; stroke-linejoin: round; }
         .navbar a { color: white; text-decoration: none; margin-left: 16px; font-weight: 500; }
         .navbar a:hover { opacity: 0.8; }
         
@@ -102,7 +92,18 @@ function statusBadge($status) {
 </head>
 <body>
 <nav class="navbar">
-    <div>Berkah Fashion</div>
+    <div class="logo">
+        <svg viewBox="0 0 24 24" stroke="currentColor">
+            <path d="M9 6L12 3L15 6" />
+            <path d="M5 7L7 21H17L19 7" />
+            <path d="M5 7L2 12L5 14" />
+            <path d="M19 7L22 12L19 14" />
+            <circle cx="12" cy="12" r="0.8" fill="white" stroke="none" />
+            <circle cx="12" cy="16" r="0.8" fill="white" stroke="none" />
+            <path d="M12 7L12 21" stroke-width="1" stroke-dasharray="1.5 1.5" opacity="0.5" />
+        </svg>
+        Berkah Fashion
+    </div>
     <div>
         <a href="index.php">Beranda</a>
         <a href="cart.php">Keranjang</a>

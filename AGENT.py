@@ -935,5 +935,55 @@ def main():
     else:
         interactive_cli()
 
+# ════════════════════════════════════════════════════════════════════════════════════
+# PART 11: AGENT WORKFLOW RULES — WAJIB DIPATUI SEMUA MODEL AI
+# ════════════════════════════════════════════════════════════════════════════════════
+#
+#  ATURAN WAJIB UNTUK SEMUA MODEL AI DALAM PENGEMBANGAN & PEMELIHARAAN APLIKASI INI
+# ════════════════════════════════════════════════════════════════════════════════════
+#
+#  📋 SIKLUS PENGEMBANGAN (WAJIB DIKUTI):
+#  ─────────────────────────────────────────────────────────────────────────────
+#  1. [DEVELOP]  Buat / ubah kode di localhost
+#  2. [TEST-LOCAL]  Jalankan tes di localhost:
+#         python AGENT.py --test
+#         python -m pytest tests/  (jika ada)
+#         npm test                (jika frontend)
+#  3. [PASS?]  Jika tes gagal → kembali ke step 1 (perbaiki kode)
+#  4. [PASS?]  Jika tes lolos → lanjut ke step 4
+#  5. [COMMIT]  Git add, commit, push ke GitHub:
+#         git add .
+#         git commit -m "deskripsi perubahan"
+#         git push origin <branch>
+#  6. [CI-TEST]  Tes otomatis di GitHub berjalan (GitHub Actions / CI)
+#         Pantau status di https://github.com/<owner>/<repo>/actions
+#  7. [CI-PASS?]  Jika CI gagal → analisa log error, fix kode, commit ulang
+#  8. [CI-PASS?]  Jika CI lolos → selesai ✅
+#
+#  ⚠️  LARANGAN:
+#  ─────────────────────────────────────────────────────────────────────────────
+#  - DILARANG push tanpa tes lokal terlebih dahulu
+#  - DILARANG mengabaikan tes yang gagal
+#  - DILARANG commit langsung ke main/master tanpa PR/review
+#  - DILARANG menghapus tes yang gagal tanpa memperbaiki kode
+#  - DILARANG menonaktifkan CI pipeline
+#
+#  🔄  LOOP ERROR CI:
+#  ─────────────────────────────────────────────────────────────────────────────
+#  Jika CI gagal:
+#    1. Baca log error dari GitHub Actions
+#    2. Analisa penyebab kegagalan
+#    3. Perbaiki kode di localhost
+#    4. Tes lokal ulang (python AGENT.py --test)
+#    5. Jika lolos → git commit & push ulang
+#    6. Ulangi sampai CI hijau ✅
+#
+#  📌  CATATAN:
+#  ─────────────────────────────────────────────────────────────────────────────
+#  - Setiap AI/model harus membaca file AGENT.py ini sebelum mulai bekerja
+#  - Patuhi semua aturan di atas tanpa pengecualian
+#  - Jika ragu, tanya user sebelum bertindak
+# ════════════════════════════════════════════════════════════════════════════════════
+
 if __name__ == "__main__":
     main()

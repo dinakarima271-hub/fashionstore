@@ -52,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
             try {
                 $pdo->beginTransaction();
                 // Insert order dengan kasir_id (offline)
-                $stmt = $pdo->prepare("INSERT INTO orders (user_id, kasir_id, total_amount, address, phone, shipping_method, payment_method, notes, status) VALUES (NULL, ?, ?, 'Toko Fisik', '-', 'Ambil di Toko', 'Tunai', 'Transaksi kasir', 'delivered')");
+                $stmt = $pdo->prepare("INSERT INTO orders (user_id, kasir_id, total_amount, shipping_cost, address, phone, shipping_method, payment_method, notes, status) VALUES (0, ?, ?, 0, 'Toko Fisik', '-', 'Ambil di Toko', 'Tunai', 'Transaksi kasir', 'delivered')");
                 $stmt->execute([$_SESSION['user_id'], $total]);
                 $order_id = $pdo->lastInsertId();
 
@@ -62,6 +62,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
                     $stmt = $pdo->prepare("UPDATE products SET stock = stock - ? WHERE id = ?");
                     $stmt->execute([$item['quantity'], $item['id']]);
                 }
+
+                // Catat transaksi offline ke tabel transactions
+                $stmtInc = $pdo->prepare("INSERT INTO transactions (type, amount, description, reference_id, created_by) VALUES ('income', ?, CONCAT('Transaksi kasir #', ?), ?, ?)");
+                $stmtInc->execute([$total, $order_id, $order_id, $_SESSION['user_id']]);
 
                 $pdo->commit();
                 $message = "Transaksi berhasil! Pesanan #$order_id";
@@ -80,10 +84,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['submit_order'])) {
     }
 }
 
-function statusIndonesia($status) {
-    $map = ['pending'=>'Menunggu','processed'=>'Diproses','shipped'=>'Dikirim','delivered'=>'Selesai','cancelled'=>'Dibatalkan'];
-    return $map[$status] ?? ucfirst($status);
-}
 ?>
 <!DOCTYPE html>
 <html lang="id">

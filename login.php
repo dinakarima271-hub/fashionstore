@@ -1,12 +1,6 @@
 <?php
 require_once 'config.php';
 
-if (!function_exists('isKasir')) {
-    function isKasir() {
-        return isset($_SESSION['role']) && $_SESSION['role'] === 'kasir';
-    }
-}
-
 if(isLoggedIn()) {
     if(isAdmin()) {
         redirect('admin/');
@@ -27,9 +21,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user = $stmt->fetch();
 
     if($user && password_verify($password, $user['password'])) {
-        $_SESSION['user_id'] = $user['id'];
-        $_SESSION['username'] = $user['username'];
-        $_SESSION['role'] = $user['role'];
+        loginSession($user);
         
         if($user['role'] === 'admin') {
             redirect('admin/');

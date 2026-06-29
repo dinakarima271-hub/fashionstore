@@ -16,10 +16,7 @@ $stmt = $pdo->prepare("SELECT oi.*, p.name FROM order_items oi JOIN products p O
 $stmt->execute([$id]);
 $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-function statusIndonesia($status) {
-    $map = ['pending'=>'Menunggu','processed'=>'Diproses','shipped'=>'Dikirim','delivered'=>'Selesai','cancelled'=>'Dibatalkan'];
-    return $map[$status] ?? ucfirst($status);
-}
+
 ?>
 <!DOCTYPE html>
 <html lang="id">
